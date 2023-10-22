@@ -114,7 +114,7 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     visited = []
     list = []
     while not queue.isEmpty():
-        node, path, cost = queue.pop()python autograder.py -q q4
+        node, path, cost = queue.pop()
         visited.append(node)
         if problem.isGoalState(node):
             return path
