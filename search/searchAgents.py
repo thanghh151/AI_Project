@@ -296,14 +296,18 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.startingPosition, self.corners
 
     def isGoalState(self, state: Any):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        position, corners = state
+        # Pacman có vị trí là góc cuối cùng chưa duyệt
+        if position in corners and len(corners) == 1:
+            return True
+        return False
 
     def getSuccessors(self, state: Any):
         """
@@ -326,6 +330,23 @@ class CornersProblem(search.SearchProblem):
             #   hitsWall = self.walls[nextx][nexty]
 
             "*** YOUR CODE HERE ***"
+            currentPosition, corners = state
+            x, y = currentPosition
+            # Tính toán di chuyển từ hướng sang x, y
+            dx, dy = Actions.directionToVector(action)
+            # Vị trí di chuyển tương ứng
+            nextx, nexty = int(x + dx), int(y + dy)
+            hitsWall = self.walls[nextx][nexty]
+
+            if not hitsWall:
+                if currentPosition in corners:
+                    # Vị trí hiện tại là gốc thì cập nhật lại corners
+                    temp = list(corners)
+                    temp.remove(currentPosition)
+                    corners = tuple(temp)
+
+                nextState = ((nextx, nexty), corners)
+                successors.append((nextState, action, 1))   
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
@@ -361,7 +382,22 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    currentPosition, corners = state
+    pmX, pmY = currentPosition
+    # Tạo danh sách rỗng chứa khoảng cách tới các góc
+    distances = []
+    # Tính khoảng cách tới các góc của Pacman
+    for corner in corners:
+        cX, cY = corner
+        # Khoảng cách Manhattan 
+        distance = abs(pmX - cX) + abs(pmY - cY)
+        distances.append(distance)
+    
+    heuristic = max(distances)
+    if problem.isGoalState(state):
+        return 0
+
+    return heuristic # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -455,7 +491,19 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    foodList = foodGrid.asList()
+    if problem.isGoalState(state):
+        return 0
+    # Tạo danh sách rỗng để lưu khoảng cách giữa Pacman và thức ăn
+    distances = []
+    # Lặp đối với tất cả các vị trí thức ăn còn lại
+    for food in foodList:
+        # Bài toán tìm kiếm với vị trí Pacman là xuất phát và vị trí thức ăn là mục tiêu
+        newProblem = PositionSearchProblem(problem.startingGameState, start=position, goal=food, warn=False, visualize=False)
+        distance = len(search.astar(newProblem))
+        distances.append(distance)
+    heuristic = max(distances)
+    return heuristic
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
