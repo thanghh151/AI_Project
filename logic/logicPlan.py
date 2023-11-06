@@ -305,7 +305,7 @@ def pacphysicsAxioms(t: int, all_coords: List[Tuple], non_outer_wall_coords: Lis
     
 
 
-def checkLocationSatisfiability(x1_y1: Tuple[int, int], x0_y0: Tuple[int, int], action0, action1, problem):
+def checkLocationSatisfiability(x1_y1: Tuple[int, int], x0_y0: Tuple[int, int], action0, action1, problem) -> List:
     """
     Given:
         - x1_y1 = (x1, y1), a potential location at time t = 1
@@ -393,7 +393,7 @@ def positionLogicPlan(problem) -> List:
 #______________________________________________________________________________
 # QUESTION 5
 
-def foodLogicPlan(problem):
+def foodLogicPlan(problem) -> List:
     """
     Given an instance of a FoodPlanningProblem, return a list of actions that help Pacman
     eat all of the food.
