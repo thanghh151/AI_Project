@@ -27,6 +27,7 @@ class PerceptronModel(object):
         Returns: a node containing a single number (the score)
         """
         "*** YOUR CODE HERE ***"
+        return nn.DotProduct(self.w, x)
 
     def get_prediction(self, x):
         """
@@ -35,12 +36,23 @@ class PerceptronModel(object):
         Returns: 1 or -1
         """
         "*** YOUR CODE HERE ***"
+        prod = nn.as_scalar(self.run(x))
+        return (prod >= 0) - (prod < 0)
 
     def train(self, dataset):
         """
         Train the perceptron until convergence.
         """
         "*** YOUR CODE HERE ***"
+        batch_size = 1
+        change_flag = True
+        while change_flag:
+            change_flag = False
+            for x, y in dataset.iterate_once(batch_size):
+                result = self.get_prediction(x)
+                if result != nn.as_scalar(y):
+                    self.w.update(nn.Constant(nn.as_scalar(y)*x.data), 1)
+                    change_flag = True
 
 class RegressionModel(object):
     """
@@ -51,6 +63,14 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.lr = .01
+        self.w1 = nn.Parameter(1, 128)
+        self.b1 = nn.Parameter(1, 128)
+        self.w2 = nn.Parameter(128, 64)
+        self.b2 = nn.Parameter(1, 64)
+        self.w3 = nn.Parameter(64, 1)
+        self.b3 = nn.Parameter(1, 1)
+        self.params = [self.w1, self.b1, self.w2, self.b2, self.w3, self.b3]
 
     def run(self, x):
         """
@@ -62,6 +82,13 @@ class RegressionModel(object):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
+        first_layer = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1),\
+                                self.b1))
+        second_layer = nn.ReLU(nn.AddBias(nn.Linear(first_layer, self.w2),\
+                                self.b2))
+        output_layer = nn.AddBias(nn.Linear(second_layer, self.w3),\
+                               self.b3)
+        return output_layer
 
     def get_loss(self, x, y):
         """
@@ -74,12 +101,90 @@ class RegressionModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        y_hat = self.run(x)
+        return nn.SquareLoss(y_hat, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        batch_size = 50
+        loss = float('inf')
+        while loss >= .015:
+            for x, y in dataset.iterate_once(batch_size):
+                loss = self.get_loss(x, y)
+                print(nn.as_scalar(loss))
+                grads = nn.gradients(loss, self.params)
+                loss = nn.as_scalar(loss)
+                for i in range(len(self.params)):
+                    self.params[i].update(grads[i], -self.lr)
+
+class RegressionModel(object):
+    """
+    A neural network model for approximating a function that maps from real
+    numbers to real numbers. The network should be sufficiently large to be able
+    to approximate sin(x) on the interval [-2pi, 2pi] to reasonable precision.
+    """
+    def __init__(self):
+        # Initialize your model parameters here
+        "*** YOUR CODE HERE ***"
+        self.lr = .01
+        self.w1 = nn.Parameter(1, 128)
+        self.b1 = nn.Parameter(1, 128)
+        self.w2 = nn.Parameter(128, 64)
+        self.b2 = nn.Parameter(1, 64)
+        self.w3 = nn.Parameter(64, 1)
+        self.b3 = nn.Parameter(1, 1)
+        self.params = [self.w1, self.b1, self.w2, self.b2, self.w3, self.b3]
+
+    def run(self, x):
+        """
+        Runs the model for a batch of examples.
+
+        Inputs:
+            x: a node with shape (batch_size x 1)
+        Returns:
+            A node with shape (batch_size x 1) containing predicted y-values
+        """
+        "*** YOUR CODE HERE ***"
+        first_layer = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1),\
+                                self.b1))
+        second_layer = nn.ReLU(nn.AddBias(nn.Linear(first_layer, self.w2),\
+                                self.b2))
+        output_layer = nn.AddBias(nn.Linear(second_layer, self.w3),\
+                               self.b3)
+        return output_layer
+
+    def get_loss(self, x, y):
+        """
+        Computes the loss for a batch of examples.
+
+        Inputs:
+            x: a node with shape (batch_size x 1)
+            y: a node with shape (batch_size x 1), containing the true y-values
+                to be used for training
+        Returns: a loss node
+        """
+        "*** YOUR CODE HERE ***"
+        y_hat = self.run(x)
+        return nn.SquareLoss(y_hat, y)
+
+    def train(self, dataset):
+        """
+        Trains the model.
+        """
+        "*** YOUR CODE HERE ***"
+        batch_size = 50
+        loss = float('inf')
+        while loss >= .015:
+            for x, y in dataset.iterate_once(batch_size):
+                loss = self.get_loss(x, y)
+                print(nn.as_scalar(loss))
+                grads = nn.gradients(loss, self.params)
+                loss = nn.as_scalar(loss)
+                for i in range(len(self.params)):
+                    self.params[i].update(grads[i], -self.lr)
 
 class DigitClassificationModel(object):
     """
