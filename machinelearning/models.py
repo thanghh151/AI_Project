@@ -154,6 +154,19 @@ class LanguageIDModel(object):
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        # Khởi tạo ma trận trọng số cho lớp thứ nhất
+        self.w1 = nn.Parameter(self.num_chars, 128)
+        # Khởi tạo ma trận trọng số cho lớp thứ hai
+        self.w2 = nn.Parameter(128, 128)
+        # Khởi tạo ma trận trọng số cho lớp thứ hai
+        self.w3 = nn.Parameter(128, len(self.languages))
+        # Khởi tạo vector bias cho lớp thứ ba
+        self.b3 = nn.Parameter(1, len(self.languages))
+        
+        # Thiết lập tốc độ học
+        self.lr = 0.1
+        # Thiết lập kích thước batch
+        self.batch_size = 100
 
     def run(self, xs):
         """
@@ -185,6 +198,16 @@ class LanguageIDModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        # Khởi tạo trạng thái của mạng
+        h = nn.ReLU(nn.Linear(xs[0], self.w1))
+        # Duyệt qua các ký tự trong danh sách `xs` và cập nhật trạng thái của mạng
+        for x in xs[1:]:
+            h = nn.ReLU(nn.Add(nn.Linear(x, self.w1), nn.Linear(h, self.w2)))
+        # Đưa trạng thái hiện tại của mạng qua một lớp tuyến tính và một lớp cộng bias để tính toán khả năng của mỗi ký tự thuộc về từng ngôn ngữ
+        y = nn.AddBias(nn.Linear(h, self.w3), self.b3)
+        return y
+
+
 
     def get_loss(self, xs, y):
         """
@@ -201,9 +224,27 @@ class LanguageIDModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        # Trả về một node loss
+        return nn.SoftmaxLoss(self.run(xs), y)
+
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        while True:
+            # Lặp vô hạn để huấn luyện mô hình
+            for x, y_ in dataset.iterate_forever(self.batch_size):
+                # Tính toán loss
+                loss = self.get_loss(x, y_)
+                # Kiểm tra điều kiện dừng
+                if dataset.get_validation_accuracy() > 0.85:
+                    return
+                
+                # Tính gradient của loss đối với các tham số
+                gradients = nn.gradients(loss, [self.w1, self.w2, self.w3, self.b3])
+                params = [self.w1, self.w2, self.w3, self.b3]
+                # Cập nhật các tham số bằng phương pháp gradient descent
+                for param, gradient in zip(params, gradients):
+                    param.update(gradient, -self.lr)
