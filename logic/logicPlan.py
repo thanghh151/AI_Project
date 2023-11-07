@@ -44,26 +44,44 @@ DIR_TO_DXDY_MAP = {'North':(0, 1), 'South':(0, -1), 'East':(1, 0), 'West':(-1, 0
 
 def sentence1() -> Expr:
     """Returns a Expr instance that encodes that the following expressions are all true.
-    
+
     A or B
     (not A) if and only if ((not B) or C)
     (not A) or (not B) or C
     """
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    exprlist = []
+    A = Expr('A')
+    B = Expr('B')
+    C = Expr('C')
+    exprlist.append(A | B)
+    exprlist.append(~A % (~B | C))
+    exprlist.append(disjoin(~A, (~B | C)))
+
+    return conjoin(exprlist)
     "*** END YOUR CODE HERE ***"
 
 
 def sentence2() -> Expr:
     """Returns a Expr instance that encodes that the following expressions are all true.
-    
+
     C if and only if (B or D)
     A implies ((not B) and (not D))
     (not (B and (not C))) implies A
     (not D) implies C
     """
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    exprlist = []
+    A = Expr('A')
+    B = Expr('B')
+    C = Expr('C')
+    D = Expr('D')
+    exprlist.append(C % (B | D))
+    exprlist.append(A >> (~B & ~D))
+    exprlist.append(~(B & ~C) >> A)
+    exprlist.append(~D >> C)
+
+    return conjoin(exprlist)
     "*** END YOUR CODE HERE ***"
 
 
@@ -78,10 +96,26 @@ def sentence3() -> Expr:
     Pacman cannot both be alive at time 0 and be born at time 0.
 
     Pacman is born at time 0.
+    (Project update: for this question only, [0] and _t are both acceptable.)
     """
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    palive0 = PropSymbolExpr("PacmanAlive", time=0)
+    palive1 = PropSymbolExpr("PacmanAlive", time=1)
+    pborn0 = PropSymbolExpr("PacmanBorn", time=0)
+    pkilled0 = PropSymbolExpr("PacmanKilled", time=0)
+
+    expr1 = palive0 & ~pkilled0
+    expr1 = expr1 | ~palive0 & pborn0
+    expr1 = palive1 % expr1
+
+    expr2 = ~(palive0 & pborn0)
+    expr3 = pborn0
+
+    exprlist = [expr1, expr2, expr3]
+
+    return conjoin(exprlist)
     "*** END YOUR CODE HERE ***"
+
 
 def findModel(sentence: Expr) -> Dict[Expr, bool]:
     """Given a propositional logic sentence (i.e. a Expr instance), returns a satisfying
@@ -90,29 +124,42 @@ def findModel(sentence: Expr) -> Dict[Expr, bool]:
     cnf_sentence = to_cnf(sentence)
     return pycoSAT(cnf_sentence)
 
-def findModelUnderstandingCheck() -> Dict[Expr, bool]:
+
+def findModelUnderstandingCheck() -> Dict[Any, bool]:
     """Returns the result of findModel(Expr('a')) if lower cased expressions were allowed.
     You should not use findModel or Expr in this method.
+    This can be solved with a one-line return statement.
     """
-    a = Expr('A')
+    class dummyClass:
+        """dummy('A') has representation A, unlike a string 'A' that has repr 'A'.
+        Of note: Expr('Name') has representation Name, not 'Name'.
+        """
+
+        def __init__(self, variable_name: str = 'A'):
+            self.variable_name = variable_name
+
+        def __repr__(self):
+            return self.variable_name
     "*** BEGIN YOUR CODE HERE ***"
-    print("a.__dict__ is:", a.__dict__) # might be helpful for getting ideas
-    util.raiseNotDefined()
+    return {dummyClass('a'): True}
     "*** END YOUR CODE HERE ***"
+
 
 def entails(premise: Expr, conclusion: Expr) -> bool:
     """Returns True if the premise entails the conclusion and False otherwise.
     """
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # If premise & ~conclusion, is unsatisfiable, return True
+    return not findModel(premise & ~conclusion)
     "*** END YOUR CODE HERE ***"
+
 
 def plTrueInverse(assignments: Dict[Expr, bool], inverse_statement: Expr) -> bool:
     """Returns True if the (not inverse_statement) is True given assignments and False otherwise.
     pl_true may be useful here; see logic.py for its description.
     """
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    return not pl_true(inverse_statement, assignments)
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
@@ -390,11 +437,14 @@ def mapping(problem, agent) -> Generator:
     '''
     pac_x_0, pac_y_0 = problem.startState
     KB = []
-    all_coords = list(itertools.product(range(problem.getWidth()+2), range(problem.getHeight()+2)))
-    non_outer_wall_coords = list(itertools.product(range(1, problem.getWidth()+1), range(1, problem.getHeight()+1)))
+    all_coords = list(itertools.product(
+        range(problem.getWidth()+2), range(problem.getHeight()+2)))
+    non_outer_wall_coords = list(itertools.product(
+        range(1, problem.getWidth()+1), range(1, problem.getHeight()+1)))
 
     # map describes what we know, for GUI rendering purposes. -1 is unknown, 0 is open, 1 is wall
-    known_map = [[-1 for y in range(problem.getHeight()+2)] for x in range(problem.getWidth()+2)]
+    known_map = [[-1 for y in range(problem.getHeight()+2)]
+                 for x in range(problem.getWidth()+2)]
 
     # Pacman knows that the outer border of squares are all walls
     outer_wall_sent = []
@@ -406,9 +456,32 @@ def mapping(problem, agent) -> Generator:
     KB.append(conjoin(outer_wall_sent))
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    # Khởi tạo vị trí pacman
+    KB.append(PropSymbolExpr(pacman_str, pac_x_0, pac_y_0, time=0))
+    known_map[pac_x_0][pac_y_0] = 0
+    KB.append(~PropSymbolExpr(wall_str, pac_x_0, pac_y_0))
 
     for t in range(agent.num_timesteps):
+        print("Timestep:", t)
+        KB += [pacphysicsAxioms(t, all_coords, non_outer_wall_coords, walls_grid=known_map, sensorModel=sensorAxioms, successorAxioms=allLegalSuccessorAxioms)]
+        action = PropSymbolExpr(agent.actions[t], time=t)
+        KB += [action]
+        percepts = agent.getPercepts()
+        rules = fourBitPerceptRules(t, percepts)
+        KB += [rules]
+
+        for x, y in non_outer_wall_coords:
+            wall_at = PropSymbolExpr(wall_str, x, y)
+            not_wall_at = ~PropSymbolExpr(wall_str, x, y)
+            if (entails(conjoin(KB), wall_at)):
+                KB += [wall_at]
+                known_map[x][y] = 1
+            if (entails(conjoin(KB), not_wall_at)):
+                KB += [not_wall_at]
+                known_map[x][y] = 0
+        # Di chuyển trạng thái của agent vào trong vòng lặp
+        agent.moveToNextState(agent.actions[t])
         "*** END YOUR CODE HERE ***"
         yield known_map
 
@@ -438,9 +511,40 @@ def slam(problem, agent) -> Generator:
     KB.append(conjoin(outer_wall_sent))
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Khởi tạo vị trí ban đầu của pacman
+    KB.append(PropSymbolExpr(pacman_str, pac_x_0, pac_y_0, time=0))
+    known_map[pac_x_0][pac_y_0] = 0
+    KB.append(~PropSymbolExpr(wall_str, pac_x_0, pac_y_0))
 
     for t in range(agent.num_timesteps):
+        print("Timestep:", t)
+        KB += [
+            pacphysicsAxioms(t, all_coords, non_outer_wall_coords, walls_grid=known_map, sensorModel=SLAMSensorAxioms, successorAxioms=SLAMSuccessorAxioms),
+            PropSymbolExpr(agent.actions[t], time=t),
+            numAdjWallsPerceptRules(t, agent.getPercepts())
+        ]
+
+        possible_locations = []
+        for x, y in non_outer_wall_coords:
+            wall_at = PropSymbolExpr(wall_str, x, y)
+            not_wall_at = ~PropSymbolExpr(wall_str, x, y)
+            pac_at = PropSymbolExpr(pacman_str, x, y, time=t)
+            not_pac_at = ~PropSymbolExpr(pacman_str, x, y, time=t)
+            
+            if (entails(conjoin(KB), wall_at)):
+                KB += [wall_at]
+                known_map[x][y] = 1
+            if (entails(conjoin(KB), not_wall_at)):
+                KB += [not_wall_at]
+                known_map[x][y] = 0
+            if (entails(conjoin(KB), pac_at)):
+                KB += [pac_at]
+            if (entails(conjoin(KB), not_pac_at)):
+                KB += [not_pac_at]
+            if (findModel(conjoin(KB) & pac_at)):
+                possible_locations.append((x, y))
+        # Di chuyển trạng thái của agent vào trong vòng lặp
+        agent.moveToNextState(agent.actions[t])
         "*** END YOUR CODE HERE ***"
         yield (known_map, possible_locations)
 
