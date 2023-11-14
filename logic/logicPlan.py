@@ -52,8 +52,12 @@ def sentence1() -> Expr:
     """
     "*** BEGIN YOUR CODE HERE ***"
     exprlist = []
-    A, B, C = Expr('A'), Expr('B'), Expr('C')
-    exprlist.extend([A | B, ~A % (~B | C), disjoin(~A, (~B | C))])
+    A = Expr('A')
+    B = Expr('B')
+    C = Expr('C')
+    exprlist.append(A | B)
+    exprlist.append(~A % (~B | C))
+    exprlist.append(disjoin(~A, (~B | C)))
 
     return conjoin(exprlist)
     "*** END YOUR CODE HERE ***"
@@ -69,8 +73,14 @@ def sentence2() -> Expr:
     """
     "*** BEGIN YOUR CODE HERE ***"
     exprlist = []
-    A, B, C, D = Expr('A'), Expr('B'), Expr('C'), Expr('D')
-    exprlist.extend([C % (B | D), A >> (~B & ~D), ~(B & ~C) >> A, ~D >> C])
+    A = Expr('A')
+    B = Expr('B')
+    C = Expr('C')
+    D = Expr('D')
+    exprlist.append(C % (B | D))
+    exprlist.append(A >> (~B & ~D))
+    exprlist.append(~(B & ~C) >> A)
+    exprlist.append(~D >> C)
 
     return conjoin(exprlist)
     "*** END YOUR CODE HERE ***"
@@ -90,13 +100,19 @@ def sentence3() -> Expr:
     (Project update: for this question only, [0] and _t are both acceptable.)
     """
     "*** BEGIN YOUR CODE HERE ***"
-    palive0, palive1 = PropSymbolExpr("PacmanAlive", time=0), PropSymbolExpr("PacmanAlive", time=1)
-    pborn0, pkilled0 = PropSymbolExpr("PacmanBorn", time=0), PropSymbolExpr("PacmanKilled", time=0)
+    palive0 = PropSymbolExpr("PacmanAlive", time=0)
+    palive1 = PropSymbolExpr("PacmanAlive", time=1)
+    pborn0 = PropSymbolExpr("PacmanBorn", time=0)
+    pkilled0 = PropSymbolExpr("PacmanKilled", time=0)
 
-    expr1 = palive0 & ~pkilled0 | ~palive0 & pborn0
+    expr1 = palive0 & ~pkilled0
+    expr1 = expr1 | ~palive0 & pborn0
     expr1 = palive1 % expr1
 
-    exprlist = [expr1, ~(palive0 & pborn0), pborn0]
+    expr2 = ~(palive0 & pborn0)
+    expr3 = pborn0
+
+    exprlist = [expr1, expr2, expr3]
 
     return conjoin(exprlist)
     "*** END YOUR CODE HERE ***"
@@ -492,31 +508,12 @@ def localization(problem, agent) -> Generator:
 
     KB = []
 
-    "* BEGIN YOUR CODE HERE *"
-    KB.extend(PropSymbolExpr(wall_str, x, y) for x, y in walls_list)
-   
-    KB.extend(~PropSymbolExpr(wall_str, x, y) for x, y in all_coords if (x, y) not in walls_list)
+    "*** BEGIN YOUR CODE HERE ***"
+    util.raiseNotDefined()
 
     for t in range(agent.num_timesteps):
-        KB.append(pacphysicsAxioms(t, all_coords, non_outer_wall_coords, walls_grid, sensorModel=sensorAxioms, successorAxioms=allLegalSuccessorAxioms))
-        
-        # Add agent actions and percepts to the knowledge base
-        KB.extend([PropSymbolExpr(agent.actions[t], time=t),fourBitPerceptRules(t=t, percepts=agent.getPercepts())])
-
-        possible_locations = []  # List to store possible locations
-        for x, y in non_outer_wall_coords:
-            if findModel(conjoin([conjoin(KB), PropSymbolExpr(pacman_str, x, y, time=t)])):
-                possible_locations.append((x, y))
-                
-            if entails(conjoin(KB), PropSymbolExpr(pacman_str, x, y, time=t)):
-                KB.append(PropSymbolExpr(pacman_str, x, y, time=t))
-            elif entails(conjoin(KB), ~PropSymbolExpr(pacman_str, x, y, time=t)):
-                KB.append(~PropSymbolExpr(pacman_str, x, y, time=t))
-
-        agent.moveToNextState(agent.actions[t])
-        "* END YOUR CODE HERE *"
+        "*** END YOUR CODE HERE ***"
         yield possible_locations
-    util.raiseNotDefined()
 
 #______________________________________________________________________________
 # QUESTION 7
