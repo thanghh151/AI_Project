@@ -187,59 +187,60 @@ class RegressionModel(object):
                     self.params[i].update(grads[i], -self.lr)
 
 class DigitClassificationModel(object):
-    """
-    A model for handwritten digit classification using the MNIST dataset.
-
-    Each handwritten digit is a 28x28 pixel grayscale image, which is flattened
-    into a 784-dimensional vector for the purposes of this model. Each entry in
-    the vector is a floating point number between 0 and 1.
-
-    The goal is to sort each digit into one of 10 classes (number 0 through 9).
-
-    (See RegressionModel for more information about the APIs of different
-    methods here. We recommend that you implement the RegressionModel before
-    working on this part of the project.)
-    """
     def __init__(self):
-        # Initialize your model parameters here
-        "*** YOUR CODE HERE ***"
+        self.batch_size = 0
+        self.in_dimension = 784
+        self.out_dimension = 10
+        self.alpha = -0.01
+        self.setting = 1
+
+        self.layer1_dimension = 100
+        self.w_1 = nn.Parameter(self.in_dimension, self.layer1_dimension)
+        self.b_1 = nn.Parameter(1, self.layer1_dimension)
+
+        if self.setting == 1:
+            self.layer2_dimension = 70
+            self.w_2 = nn.Parameter(self.layer1_dimension, self.layer2_dimension)
+            self.b_2 = nn.Parameter(1, self.layer2_dimension)
+
+            self.layer3_dimension = self.out_dimension
+            self.w_3 = nn.Parameter(self.layer2_dimension, self.layer3_dimension)
+            self.b_3 = nn.Parameter(1, self.layer3_dimension)
+        else:
+            self.layer2_dimension = self.out_dimension
+            self.w_2 = nn.Parameter(self.layer1_dimension, self.layer2_dimension)
+            self.b_2 = nn.Parameter(1, self.layer2_dimension)
 
     def run(self, x):
-        """
-        Runs the model for a batch of examples.
+        if self.batch_size == 0:
+            self.batch_size = x.data.shape[0]
 
-        Your model should predict a node with shape (batch_size x 10),
-        containing scores. Higher scores correspond to greater probability of
-        the image belonging to a particular class.
-
-        Inputs:
-            x: a node with shape (batch_size x 784)
-        Output:
-            A node with shape (batch_size x 10) containing predicted scores
-                (also called logits)
-        """
-        "*** YOUR CODE HERE ***"
+        if self.setting == 1:
+            first_layer = nn.ReLU(nn.AddBias(nn.Linear(x, self.w_1), self.b_1))
+            second_layer = nn.ReLU(nn.AddBias(nn.Linear(first_layer, self.w_2), self.b_2))
+            return nn.AddBias(nn.Linear(second_layer, self.w_3), self.b_3)
+        else:
+            first_layer = nn.ReLU(nn.AddBias(nn.Linear(x, self.w_1), self.b_1))
+            second_layer = nn.ReLU(nn.AddBias(nn.Linear(first_layer, self.w_2), self.b_2))
+            return second_layer
 
     def get_loss(self, x, y):
-        """
-        Computes the loss for a batch of examples.
-
-        The correct labels `y` are represented as a node with shape
-        (batch_size x 10). Each row is a one-hot vector encoding the correct
-        digit class (0-9).
-
-        Inputs:
-            x: a node with shape (batch_size x 784)
-            y: a node with shape (batch_size x 10)
-        Returns: a loss node
-        """
-        "*** YOUR CODE HERE ***"
+        return nn.SoftmaxLoss(self.run(x), y)
 
     def train(self, dataset):
-        """
-        Trains the model.
-        """
-        "*** YOUR CODE HERE ***"
+        while True:
+            n = 0
+            for x, y in dataset.iterate_once(self.batch_size):
+                n += 1
+                loss = self.get_loss(x, y)
+                origin = [self.w_1, self.b_1, self.w_2, self.b_2] if self.setting == 2 else [self.w_1, self.b_1, self.w_2, self.b_2, self.w_3, self.b_3]
+                grad = nn.gradients(loss, origin)
+                for i in range(len(origin)):
+                    origin[i].update(grad[i], self.alpha)
+            if dataset.get_validation_accuracy() > 0.96:
+                self.alpha = -0.003
+            if dataset.get_validation_accuracy() > 0.972:
+                break
 
 class LanguageIDModel(object):
     """
@@ -259,19 +260,16 @@ class LanguageIDModel(object):
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
-        # Khởi tạo ma trận trọng số cho lớp thứ nhất
-        self.w1 = nn.Parameter(self.num_chars, 128)
-        # Khởi tạo ma trận trọng số cho lớp thứ hai
-        self.w2 = nn.Parameter(128, 128)
-        # Khởi tạo ma trận trọng số cho lớp thứ hai
-        self.w3 = nn.Parameter(128, len(self.languages))
-        # Khởi tạo vector bias cho lớp thứ ba
-        self.b3 = nn.Parameter(1, len(self.languages))
-        
-        # Thiết lập tốc độ học
-        self.lr = 0.1
-        # Thiết lập kích thước batch
-        self.batch_size = 100
+        self.batch_size = 0
+        self.in_dimension = self.num_chars
+        self.out_dimension = len(self.languages)
+        self.alpha = -0.01
+        self.setting = 1
+
+        self.h_layer1_dimension = 100
+        self.w = nn.Parameter(self.in_dimension, self.h_layer1_dimension)  # input features, output features
+        self.w_hidden = nn.Parameter(self.h_layer1_dimension, self.h_layer1_dimension)
+        self.w_output = nn.Parameter(self.h_layer1_dimension, self.out_dimension)
 
     def run(self, xs):
         """
@@ -303,16 +301,12 @@ class LanguageIDModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
-        # Khởi tạo trạng thái của mạng
-        h = nn.ReLU(nn.Linear(xs[0], self.w1))
-        # Duyệt qua các ký tự trong danh sách `xs` và cập nhật trạng thái của mạng
-        for x in xs[1:]:
-            h = nn.ReLU(nn.Add(nn.Linear(x, self.w1), nn.Linear(h, self.w2)))
-        # Đưa trạng thái hiện tại của mạng qua một lớp tuyến tính và một lớp cộng bias để tính toán khả năng của mỗi ký tự thuộc về từng ngôn ngữ
-        y = nn.AddBias(nn.Linear(h, self.w3), self.b3)
-        return y
-
-
+        if self.batch_size == 0:
+            self.batch_size = xs[0].data.shape[0]
+        f = nn.ReLU(nn.Linear(xs[0], self.w))
+        for i in range(1,len(xs)):
+            f = nn.ReLU(nn.Add(nn.Linear(xs[i], self.w), nn.Linear(f, self.w_hidden)))
+        return nn.Linear(f, self.w_output)
 
     def get_loss(self, xs, y):
         """
@@ -329,9 +323,7 @@ class LanguageIDModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
-        # Trả về một node loss
         return nn.SoftmaxLoss(self.run(xs), y)
-
 
     def train(self, dataset):
         """
@@ -339,17 +331,15 @@ class LanguageIDModel(object):
         """
         "*** YOUR CODE HERE ***"
         while True:
-            # Lặp vô hạn để huấn luyện mô hình
-            for x, y_ in dataset.iterate_forever(self.batch_size):
-                # Tính toán loss
-                loss = self.get_loss(x, y_)
-                # Kiểm tra điều kiện dừng
-                if dataset.get_validation_accuracy() > 0.85:
-                    return
-                
-                # Tính gradient của loss đối với các tham số
-                gradients = nn.gradients(loss, [self.w1, self.w2, self.w3, self.b3])
-                params = [self.w1, self.w2, self.w3, self.b3]
-                # Cập nhật các tham số bằng phương pháp gradient descent
-                for param, gradient in zip(params, gradients):
-                    param.update(gradient, -self.lr)
+            n = 0
+            for x, y in dataset.iterate_once(self.batch_size):
+                n += 1
+                loss = self.get_loss(x, y)
+                origin = [self.w, self.w_hidden, self.w_output]
+                grad = nn.gradients(loss, origin)
+                for i in range(len(origin)):
+                    origin[i].update(grad[i], self.alpha)
+            if dataset.get_validation_accuracy() > 0.8:
+                self.alpha = -0.003
+            if dataset.get_validation_accuracy() > 0.87:
+                break
