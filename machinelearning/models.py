@@ -187,60 +187,60 @@ class RegressionModel(object):
                     self.params[i].update(grads[i], -self.lr)
 
 class DigitClassificationModel(object):
-    """
-    A model for handwritten digit classification using the MNIST dataset.
-
-    Each handwritten digit is a 28x28 pixel grayscale image, which is flattened
-    into a 784-dimensional vector for the purposes of this model. Each entry in
-    the vector is a floating point number between 0 and 1.
-
-    The goal is to sort each digit into one of 10 classes (number 0 through 9).
-
-    (See RegressionModel for more information about the APIs of different
-    methods here. We recommend that you implement the RegressionModel before
-    working on this part of the project.)
-    """
     def __init__(self):
-        # Initialize your model parameters here
-        "*** YOUR CODE HERE ***"
+        self.batch_size = 0
+        self.in_dimension = 784
+        self.out_dimension = 10
+        self.alpha = -0.01
+        self.setting = 1
+
+        self.layer1_dimension = 100
+        self.w_1 = nn.Parameter(self.in_dimension, self.layer1_dimension)
+        self.b_1 = nn.Parameter(1, self.layer1_dimension)
+
+        if self.setting == 1:
+            self.layer2_dimension = 70
+            self.w_2 = nn.Parameter(self.layer1_dimension, self.layer2_dimension)
+            self.b_2 = nn.Parameter(1, self.layer2_dimension)
+
+            self.layer3_dimension = self.out_dimension
+            self.w_3 = nn.Parameter(self.layer2_dimension, self.layer3_dimension)
+            self.b_3 = nn.Parameter(1, self.layer3_dimension)
+        else:
+            self.layer2_dimension = self.out_dimension
+            self.w_2 = nn.Parameter(self.layer1_dimension, self.layer2_dimension)
+            self.b_2 = nn.Parameter(1, self.layer2_dimension)
 
     def run(self, x):
-        """
-        Runs the model for a batch of examples.
+        if self.batch_size == 0:
+            self.batch_size = x.data.shape[0]
 
-        Your model should predict a node with shape (batch_size x 10),
-        containing scores. Higher scores correspond to greater probability of
-        the image belonging to a particular class.
-
-        Inputs:
-            x: a node with shape (batch_size x 784)
-        Output:
-            A node with shape (batch_size x 10) containing predicted scores
-                (also called logits)
-        """
-        "*** YOUR CODE HERE ***"
+        if self.setting == 1:
+            first_layer = nn.ReLU(nn.AddBias(nn.Linear(x, self.w_1), self.b_1))
+            second_layer = nn.ReLU(nn.AddBias(nn.Linear(first_layer, self.w_2), self.b_2))
+            return nn.AddBias(nn.Linear(second_layer, self.w_3), self.b_3)
+        else:
+            first_layer = nn.ReLU(nn.AddBias(nn.Linear(x, self.w_1), self.b_1))
+            second_layer = nn.ReLU(nn.AddBias(nn.Linear(first_layer, self.w_2), self.b_2))
+            return second_layer
 
     def get_loss(self, x, y):
-        """
-        Computes the loss for a batch of examples.
-
-        The correct labels `y` are represented as a node with shape
-        (batch_size x 10). Each row is a one-hot vector encoding the correct
-        digit class (0-9).
-
-        Inputs:
-            x: a node with shape (batch_size x 784)
-            y: a node with shape (batch_size x 10)
-        Returns: a loss node
-        """
-        "*** YOUR CODE HERE ***"
+        return nn.SoftmaxLoss(self.run(x), y)
 
     def train(self, dataset):
-        """
-        Trains the model.
-        """
-        "*** YOUR CODE HERE ***"
-
+        while True:
+            n = 0
+            for x, y in dataset.iterate_once(self.batch_size):
+                n += 1
+                loss = self.get_loss(x, y)
+                origin = [self.w_1, self.b_1, self.w_2, self.b_2] if self.setting == 2 else [self.w_1, self.b_1, self.w_2, self.b_2, self.w_3, self.b_3]
+                grad = nn.gradients(loss, origin)
+                for i in range(len(origin)):
+                    origin[i].update(grad[i], self.alpha)
+            if dataset.get_validation_accuracy() > 0.96:
+                self.alpha = -0.003
+            if dataset.get_validation_accuracy() > 0.972:
+                break
 class LanguageIDModel(object):
     """
     A model for language identification at a single-word granularity.
