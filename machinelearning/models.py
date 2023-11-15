@@ -243,14 +243,14 @@ class DigitClassificationModel(object):
                 break
 
 class LanguageIDModel(object):
-    """
+     """
     A model for language identification at a single-word granularity.
 
     (See RegressionModel for more information about the APIs of different
     methods here. We recommend that you implement the RegressionModel before
     working on this part of the project.)
     """
-    def __init__(self):
+     def __init__(self):
         # Our dataset contains words from five different languages, and the
         # combined alphabets of the five languages contain a total of 47 unique
         # characters.
@@ -260,18 +260,8 @@ class LanguageIDModel(object):
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
-        self.batch_size = 0
-        self.in_dimension = self.num_chars
-        self.out_dimension = len(self.languages)
-        self.alpha = -0.01
-        self.setting = 1
 
-        self.h_layer1_dimension = 100
-        self.w = nn.Parameter(self.in_dimension, self.h_layer1_dimension)  # input features, output features
-        self.w_hidden = nn.Parameter(self.h_layer1_dimension, self.h_layer1_dimension)
-        self.w_output = nn.Parameter(self.h_layer1_dimension, self.out_dimension)
-
-    def run(self, xs):
+     def run(self, xs):
         """
         Runs the model for a batch of examples.
 
@@ -301,14 +291,9 @@ class LanguageIDModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
-        if self.batch_size == 0:
-            self.batch_size = xs[0].data.shape[0]
-        f = nn.ReLU(nn.Linear(xs[0], self.w))
-        for i in range(1,len(xs)):
-            f = nn.ReLU(nn.Add(nn.Linear(xs[i], self.w), nn.Linear(f, self.w_hidden)))
-        return nn.Linear(f, self.w_output)
 
-    def get_loss(self, xs, y):
+
+     def get_loss(self, xs, y):
         """
         Computes the loss for a batch of examples.
 
@@ -323,23 +308,11 @@ class LanguageIDModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
-        return nn.SoftmaxLoss(self.run(xs), y)
 
-    def train(self, dataset):
+
+     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-        while True:
-            n = 0
-            for x, y in dataset.iterate_once(self.batch_size):
-                n += 1
-                loss = self.get_loss(x, y)
-                origin = [self.w, self.w_hidden, self.w_output]
-                grad = nn.gradients(loss, origin)
-                for i in range(len(origin)):
-                    origin[i].update(grad[i], self.alpha)
-            if dataset.get_validation_accuracy() > 0.8:
-                self.alpha = -0.003
-            if dataset.get_validation_accuracy() > 0.87:
-                break
+        
